@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KV 캐시 쉬운 설명 — 벨로키와 함께 3분 만에 이해하는 AI 속도 비결</title>
+  <style>
+    :root {
+      --bg: #FFFDF7;
+      --card: #FFFFFF;
+      --ink: #1E2430;
+      --muted: #5A6475;
+      --border: #E6DFD1;
+      --accent: #E85D4A;
+      --accent-soft: #FFF0ED;
+      --blue: #2F6FED;
+      --blue-soft: #EEF4FF;
+      --green: #169C63;
+      --green-soft: #EAF9F2;
+      --amber: #D9822B;
+      --amber-soft: #FFF6E8;
+      --purple: #7C3AED;
+      --purple-soft: #F5F0FF;
+      --code-bg: #181C24;
+      --shadow: 0 10px 30px rgba(30, 36, 48, 0.06);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.68;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 940px;
+      margin: 0 auto;
+      padding: 36px 20px 80px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+    }
+
+    .badge.veloki {
+      background: var(--amber-soft);
+      border-color: #F5D5A7;
+      color: #9A5512;
+    }
+
+    .badge.blue {
+      background: var(--blue-soft);
+      border-color: #C7DBFF;
+      color: #1D4ED8;
+    }
+
+    .badge.green {
+      background: var(--green-soft);
+      border-color: #B4E8D0;
+      color: #0D6E45;
+    }
+
+    h1 {
+      font-size: clamp(27px, 4.4vw, 40px);
+      line-height: 1.24;
+      margin: 0 0 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 17.5px;
+      color: var(--muted);
+      margin: 0 0 28px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    @media (max-width: 760px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .card { padding: 22px 18px; }
+    }
+
+    .illus-box {
+      background: #FFFDF7;
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .illus-box img {
+      width: 100%;
+      max-width: 380px;
+      height: auto;
+      border-radius: 12px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .illus-caption {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .tldr {
+      background: var(--amber-soft);
+      border-left: 5px solid var(--amber);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 16px;
+    }
+
+    .tldr strong { color: #8A4B08; }
+
+    h2 {
+      font-size: 22px;
+      margin: 0 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      line-height: 1.35;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .analogy {
+      background: var(--blue-soft);
+      border: 1px solid #C9DBFF;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin: 14px 0;
+    }
+
+    .analogy-title {
+      font-weight: 800;
+      color: #1D4ED8;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    .speech {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #FFF9EC;
+      border: 1.5px solid #F3DCAA;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 15px;
+    }
+
+    .speech .tag {
+      background: var(--ink);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Interactive Simulator Box */
+    .sim-box {
+      background: #F8F6F0;
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 18px;
+    }
+
+    .sim-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .sim-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button.sim-btn {
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      padding: 9px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    button.sim-btn:hover { transform: translateY(-1px); }
+    button.sim-btn.primary {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+    button.sim-btn.active-off {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: #B42318;
+    }
+    button.sim-btn.active-on {
+      background: var(--green-soft);
+      border-color: var(--green);
+      color: #0D6E45;
+    }
+    button.sim-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .token-stage {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      min-height: 92px;
+      margin-bottom: 14px;
+    }
+
+    .token-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .tok {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 14px;
+      border: 2px solid var(--border);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .tok .sub {
+      font-size: 10.5px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .tok.recompute {
+      background: var(--accent-soft);
+      border-color: #F4A397;
+      color: #B42318;
+      animation: pop 0.22s ease;
+    }
+
+    .tok.cached {
+      background: #FFF9DB;
+      border-color: #F2D06B;
+      color: #8A5A00;
+    }
+
+    .tok.fresh {
+      background: var(--green-soft);
+      border-color: var(--green);
+      color: #0D6E45;
+      animation: pop 0.22s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.88); opacity: 0.4; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
+    .stat-pill {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .stat-val {
+      font-size: 20px;
+      font-weight: 900;
+      margin-top: 2px;
+    }
+
+    .stat-val.red { color: var(--accent); }
+    .stat-val.green { color: var(--green); }
+
+    /* QKV Cards */
+    .qkv-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 720px) {
+      .qkv-grid { grid-template-columns: 1fr; }
+    }
+
+    .qkv-card {
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      background: #fff;
+      transition: transform 0.15s ease;
+    }
+
+    .qkv-card:hover { transform: translateY(-2px); }
+    .qkv-card.q { background: var(--purple-soft); border-color: #D8C7FF; }
+    .qkv-card.k { background: var(--amber-soft); border-color: #F5D5A7; }
+    .qkv-card.v { background: var(--green-soft); border-color: #B4E8D0; }
+
+    .qkv-letter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      font-size: 19px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .qkv-card.q .qkv-letter { background: var(--purple); }
+    .qkv-card.k .qkv-letter { background: var(--amber); }
+    .qkv-card.v .qkv-letter { background: var(--green); }
+
+    .qkv-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0 0 6px;
+    }
+
+    .save-tag {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    /* VRAM Meter */
+    .vram-bar-wrap {
+      background: #EAE5D9;
+      border-radius: 999px;
+      height: 26px;
+      overflow: hidden;
+      margin: 12px 0;
+      border: 1.5px solid var(--border);
+      position: relative;
+    }
+
+    .vram-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.25s ease, background 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      min-width: 54px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--ink);
+      cursor: pointer;
+    }
+
+    /* Tips grid */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 740px) {
+      .tips-grid { grid-template-columns: 1fr; }
+    }
+
+    .tip-card {
+      background: #FFFDF7;
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .tip-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tip-card p {
+      margin: 0;
+      font-size: 14.5px;
+      color: var(--muted);
+    }
+
+    /* Tool Tabs (Claude / Codex / Antigravity) */
+    .tool-panel {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-top: 12px;
+    }
+
+    .tool-panel h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 14.5px;
+    }
+
+    .tool-list li {
+      margin-bottom: 8px;
+    }
+
+    .ox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 660px) {
+      .ox-grid { grid-template-columns: 1fr; }
+    }
+
+    .ox-btn {
+      text-align: left;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 15px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .ox-btn:hover { transform: translateY(-1px); border-color: #C9BEA8; }
+    .ox-btn.hit { background: var(--green-soft); border-color: var(--green); }
+    .ox-btn.miss { background: var(--accent-soft); border-color: var(--accent); }
+    .ox-result {
+      display: block;
+      margin-top: 6px;
+      font-size: 12.5px;
+      font-weight: 800;
+    }
+
+    code {
+      background: #F1ECE1;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9em;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="badge-row">
+      <span class="badge veloki">🦖 벨로키의 3분 해부</span>
+      <span class="badge blue">🧠 LLM 핵심 원리 · KV Cache</span>
+      <span class="badge green">⚡ 왜 AI가 타다닥 빠를까?</span>
+    </div>
+
+    <h1>“AI가 한 글자 쓸 때마다 처음부터 다시 읽는다고? 그걸 막아주는 포스트잇, <code>KV 캐시</code>”</h1>
+    <p class="subtitle">
+      ChatGPT나 Claude가 긴 대화에서도 타다닥 답을 뽑아내는 진짜 비결, 그리고 대화가 길어지면 GPU 메모리가 비명을 지르는 이유를 벨로키와 함께 3분 만에 뜯어봅시다.
+    </p>
+
+    <!-- HERO -->
+    <section class="card">
+      <div class="hero-grid">
+        <div>
+          <h2 style="margin-top:0;">한 줄 요약부터 보고 가자</h2>
+          <p>
+            LLM(거대언어모델)은 문장을 한 번에 뚝딱 만드는 게 아니라, <strong>다음 단어(토큰)를 하나씩 이어 붙이는 방식</strong>으로 대답합니다.
+            문제는 새 단어를 하나 고를 때마다 <strong>앞에 나왔던 모든 단어와의 관계</strong>를 다시 따져봐야 한다는 점이에요.
+          </p>
+          <p>
+            매번 1번째 단어부터 다시 계산하면 문장이 길어질수록 끔찍하게 느려집니다.
+            그래서 <strong>이미 계산해 둔 앞 단어들의 요약 정보(Key, Value)를 메모리에 저장해 두고 재사용</strong>하는 기술이 바로 <strong>KV 캐시(KV Cache)</strong>입니다.
+          </p>
+          <div class="tldr">
+            <strong>💡 핵심 한 줄:</strong> KV 캐시는 AI가 <strong>“아까 읽은 내용 또 계산하기 귀찮으니까 포스트잇에 적어두고 꺼내 쓰는 치트키”</strong>입니다!
+          </div>
+        </div>
+        <div class="illus-box">
+          <img src="assets/261120-veloki-kvcache-hero.png" alt="K와 V 포스트잇이 정리된 보드를 가리키며 빠르게 글을 생성하는 벨로키" />
+          <div class="illus-caption">벨로키: “1페이지부터 또 읽을 바엔 포스트잇(K·V) 붙여두고 커피 한 잔 하지 뭐.”</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 1: ANALOGY + INTERACTIVE SIMULATOR -->
+    <section class="card">
+      <h2><span class="step-num">1</span>왜 필요할까? “소설 쓸 때 매번 1페이지부터 정독하는 작가”</h2>
+      <div class="analogy">
+        <div class="analogy-title">📖 소설 작가 비유</div>
+        100번째 단어를 쓰려고 1~99번째 단어를 처음부터 끝까지 다시 정독하고, 101번째 단어를 쓰려고 또 1~100번째 단어를 처음부터 정독하는 작가가 있다고 해봅시다. 책 한 권 쓰다 해가 바뀌겠죠.<br/>
+        <strong>KV 캐시</strong>는 이미 쓴 문단마다 <strong>“핵심 요약 포스트잇”</strong>을 붙여두는 겁니다. 101번째 단어를 쓸 때는 <strong>방금 쓴 100번째 단어의 포스트잇 1장만 새로 붙이고</strong>, 나머지는 붙여둔 걸 그대로 쓱 훑어보기만 하면 끝!
+      </div>
+
+      <div class="sim-box">
+        <div class="sim-header">
+          <div style="font-weight:800; font-size:15.5px;">🎮 직접 눌러보기: KV 캐시 OFF vs ON 계산량 체험</div>
+          <div class="sim-controls">
+            <button id="mode-off" class="sim-btn active-off" onclick="setMode('off')">🐢 KV 캐시 OFF (매번 재계산)</button>
+            <button id="mode-on" class="sim-btn" onclick="setMode('on')">⚡ KV 캐시 ON (포스트잇 재사용)</button>
+          </div>
+        </div>
+
+        <div class="token-stage">
+          <div style="font-size:12.5px; color:var(--muted); margin-bottom:10px; font-weight:700;" id="sim-hint">
+            아래 [다음 단어 생성] 버튼을 눌러 AI가 한 단어씩 말할 때 일어나는 일을 보세요!
+          </div>
+          <div class="token-row" id="token-row"></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-pill">
+            <div class="stat-label">생성된 단어 수</div>
+            <div class="stat-val" id="stat-len">1개</div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-label">방금 턴에 계산한 단어</div>
+            <div class="stat-val red" id="stat-step">1개</div>
+          </div>
+          <div class="stat-pill">
+            <div class="stat-label">지금까지 누적 계산량</div>
+            <div class="stat-val red" id="stat-total">1회</div>
+          </div>
+        </div>
+
+        <div class="sim-controls">
+          <button id="btn-next" class="sim-btn primary" onclick="nextToken()">✨ 다음 단어 생성 (+1)</button>
+          <button class="sim-btn" onclick="resetSim()">🔄 처음부터 다시</button>
+        </div>
+
+        <div class="speech" id="sim-veloki" style="margin-top:14px;">
+          <span class="tag">벨로키</span>
+          <span>지금은 <strong>KV 캐시 OFF</strong>예요. 단어가 늘어날수록 빨간색(재계산)이 어떻게 불어나는지 눌러보세요!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2: WHAT IS Q, K, V? -->
+    <section class="card">
+      <h2><span class="step-num">2</span>잠깐, 왜 ‘QKV 캐시’가 아니라 <code>KV 캐시</code>일까?</h2>
+      <p>
+        트랜스포머(Transformer) AI는 단어들끼리 서로 얼마나 관련 있는지 계산할 때(어텐션) 각 단어를 <strong>Q, K, V</strong> 세 가지 역할로 변신시킵니다. 도서관으로 비유하면 딱 10초 만에 이해돼요!
+      </p>
+
+      <div class="qkv-grid">
+        <div class="qkv-card q">
+          <div class="qkv-letter">Q</div>
+          <div class="qkv-title">Query (방금 던진 질문)</div>
+          <div style="font-size:14.5px; color:var(--muted);">
+            “지금 내가 <strong>‘먹을까’</strong>라는 단어를 쓰려는데, 앞문장에 음식 얘기가 있었나?”<br/>
+            방금 새로 나온 단어 <strong>딱 1개</strong>의 질문만 있으면 됩니다.
+          </div>
+          <span class="save-tag">❌ 저장 안 함 (일회용 질문)</span>
+        </div>
+
+        <div class="qkv-card k">
+          <div class="qkv-letter">K</div>
+          <div class="qkv-title">Key (책등 이름표)</div>
+          <div style="font-size:14.5px; color:var(--muted);">
+            앞 단어들이 달고 있는 검색용 태그입니다.<br/>
+            “나는 <strong>‘치킨’</strong>이라는 음식 키워드야!”<br/>
+            앞 단어는 안 바뀌니 한 번 계산해 두면 끝!
+          </div>
+          <span class="save-tag">📌 포스트잇에 저장 (Cache!)</span>
+        </div>
+
+        <div class="qkv-card v">
+          <div class="qkv-letter">V</div>
+          <div class="qkv-title">Value (책 속 알맹이)</div>
+          <div style="font-size:14.5px; color:var(--muted);">
+            이름표(K)가 일치했을 때 실제로 꺼내 쓰는 내용입니다.<br/>
+            “바삭하고 짭짤한 저녁 메뉴 맥락”<br/>
+            이것도 과거 단어 내용이라 안 바뀝니다!
+          </div>
+          <span class="save-tag">📌 포스트잇에 저장 (Cache!)</span>
+        </div>
+      </div>
+
+      <div class="speech">
+        <span class="tag">벨로키</span>
+        <span>
+          결국 <strong>과거 단어들은 시간이 지나도 안 바뀌니까</strong> 이름표(<code>K</code>)와 알맹이(<code>V</code>)를 미리 저장해 두고, 새 단어가 나올 때마다 <strong>새 질문(<code>Q</code>) 1개만</strong> 들고 가서 쓱 매칭하는 거예요. 그래서 이름이 <strong>KV 캐시</strong>입니다!
+        </span>
+      </div>
+    </section>
+
+    <!-- STEP 3: THE TRADE-OFF (VRAM) -->
+    <section class="card">
+      <h2><span class="step-num">3</span>세상에 공짜는 없다: 속도를 얻고 <code>GPU 메모리(VRAM)</code>를 내준다</h2>
+      <div class="hero-grid" style="margin-top:12px;">
+        <div class="illus-box">
+          <img src="assets/261120-veloki-kvcache-vram.png" alt="GPU VRAM 상자 위로 K와 V 포스트잇 탑이 아슬아슬하게 쌓인 걸 보고 땀을 흘리는 벨로키" />
+          <div class="illus-caption">벨로키: “빠르긴 한데… 대화가 길어질수록 포스트잇이 GPU를 집어삼키는데요?”</div>
+        </div>
+        <div>
+          <p style="margin-top:0;">
+            포스트잇을 벽에 자꾸 붙이다 보면 언젠가 벽이 꽉 차겠죠? KV 캐시도 똑같습니다.
+          </p>
+          <p>
+            <strong>대화가 길어질수록(토큰 수 ↑)</strong>, 그리고 <strong>여러 사람이 동시에 질문할수록(배치 수 ↑)</strong> 저장해야 할 K·V 덩어리가 눈덩이처럼 불어나 <strong>GPU VRAM</strong>을 먹어치웁니다.
+          </p>
+          <div class="tldr" style="background:var(--accent-soft); border-left-color:var(--accent);">
+            <strong style="color:#B42318;">⚠️ 메모리 한계 (OOM):</strong> 로컬에서 AI를 돌릴 때 모델 용량은 5GB인데 24GB 그래픽카드가 뻗는 이유? 십중팔구 <strong>컨텍스트를 너무 길게 잡아서 KV 캐시가 VRAM을 다 먹었기 때문</strong>입니다!
+          </div>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE VRAM SLIDER -->
+      <div class="sim-box">
+        <div style="font-weight:800; font-size:15.5px; margin-bottom:10px;">🎚️ 컨텍스트 길이 슬라이더: 내 GPU(24GB) 버틸 수 있을까?</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">
+          ※ 8B급 모델 기본 가중치(약 6GB)가 올라간 24GB GPU 환경의 <strong>직관 이해용 예시</strong>입니다. (모델 구조·레이어 수에 따라 실제 값은 달라집니다.)
+        </div>
+
+        <div class="sim-controls" style="margin-bottom:14px;">
+          <button id="arch-mha" class="sim-btn active-off" onclick="setArch('mha')">옛날 방식 (MHA · 풀사이즈)</button>
+          <button id="arch-gqa" class="sim-btn" onclick="setArch('gqa')">요즘 모델 (GQA · 1/4 다이어트)</button>
+          <button id="arch-q8" class="sim-btn" onclick="setArch('q8')">GQA + 8-bit 양자화 (초슬림)</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px; margin-bottom:6px;">
+          <span>대화 길이(컨텍스트): <span id="ctx-label" style="color:var(--blue);">16K 토큰</span></span>
+          <span>예상 총 VRAM: <span id="vram-label">14.0 GB / 24 GB</span></span>
+        </div>
+        <input id="ctx-slider" type="range" min="1" max="128" value="16" step="1" oninput="updateVram()" />
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted);">
+          <span>1K (짧은 질문)</span>
+          <span>32K (책 1챕터)</span>
+          <span>64K (긴 코드베이스)</span>
+          <span>128K (소설 한 권)</span>
+        </div>
+
+        <div class="vram-bar-wrap">
+          <div id="vram-bar" class="vram-bar-fill" style="width:58%; background:var(--green);">58%</div>
+        </div>
+
+        <div class="speech" id="vram-veloki" style="margin-top:10px;">
+          <span class="tag">벨로키</span>
+          <span>아직 GPU가 콧노래 부르며 돌고 있어요! 슬라이더를 오른쪽으로 쭉 밀어보세요.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 4: CLAUDE / CODEX / ANTIGRAVITY PRACTICAL GUIDE -->
+    <section class="card">
+      <h2><span class="step-num">4</span>실전! 클로드·코덱스·안티그래비티 쓸 때 KV 캐시 꿀빨기</h2>
+      <p>
+        “그럼 내가 매일 쓰는 코딩 에이전트에서는 KV 캐시를 어떻게 써먹어?”<br/>
+        사실 <strong>클로드·코덱스·안티그래비티 모두 서버에서 KV 캐시(프롬프트 캐싱)를 자동으로 돌려줍니다.</strong>
+        핵심 대원칙은 딱 하나: <strong>“프롬프트의 맨 앞부분(Prefix)이 1글자도 안 바뀔 때만 포스트잇이 재사용된다!”</strong>
+      </p>
+
+      <div class="sim-box">
+        <div style="font-weight:800; font-size:15.5px; margin-bottom:10px;">🛠️ 도구별 KV 캐시 활용법 눌러보기</div>
+        <div class="sim-controls">
+          <button id="tool-claude" class="sim-btn active-on" onclick="showTool('claude')">🟣 Claude Code</button>
+          <button id="tool-codex" class="sim-btn" onclick="showTool('codex')">🟢 Codex (OpenAI)</button>
+          <button id="tool-agy" class="sim-btn" onclick="showTool('agy')">🔵 Antigravity (Gemini)</button>
+        </div>
+
+        <div id="tool-panel" class="tool-panel"></div>
+
+        <div style="font-weight:800; font-size:15px; margin-top:20px; margin-bottom:4px;">🚨 내 습관, KV 캐시 살리고 있을까? 깨고 있을까? (눌러서 확인!)</div>
+        <div class="ox-grid">
+          <button class="ox-btn" onclick="checkOx(this, true, '✅ 캐시 HIT! 방금 붙인 포스트잇(KV)이 살아있는 5분 안에 꼬리 질문을 몰아치면 속도도 빠르고 토큰도 확 아껴집니다.')">
+            <strong>① 큰 코드/문서를 읽히고 3분 안에 꼬리 질문 3개 몰아서 하기</strong>
+            <span class="ox-result" style="color:var(--muted);">👉 눌러서 판정 보기</span>
+          </button>
+          <button class="ox-btn" onclick="checkOx(this, false, '💥 캐시 MISS! 맨 앞 지침(Prefix)이 1글자라도 바뀌면 그 뒤에 붙여둔 포스트잇을 처음부터 다시 계산해야 합니다.')">
+            <strong>② 작업 한창 하던 중간에 <code>CLAUDE.md</code> / <code>AGENTS.md</code> 수정하기</strong>
+            <span class="ox-result" style="color:var(--muted);">👉 눌러서 판정 보기</span>
+          </button>
+          <button class="ox-btn" onclick="checkOx(this, false, '💥 캐시 MISS! 맨 앞에 초 단위 시각이나 랜덤 ID가 매번 바뀌면 앞부분이 매 턴 달라져서 캐시가 아예 안 잡힙니다.')">
+            <strong>③ 시스템 프롬프트 맨 위에 <code>현재 시각: 07:12:34</code> 같은 동적 값 넣기</strong>
+            <span class="ox-result" style="color:var(--muted);">👉 눌러서 판정 보기</span>
+          </button>
+          <button class="ox-btn" onclick="checkOx(this, true, '✅ 캐시 HIT &amp; 다이어트! 전혀 다른 주제로 넘어갈 땐 안 쓰는 포스트잇을 비우고 새 세션을 여는 게 속도·품질·비용 모두 이득!')">
+            <strong>④ 버그 수정 끝나고 전혀 다른 기능 만들 때 <code>/clear</code> 또는 새 채팅 열기</strong>
+            <span class="ox-result" style="color:var(--muted);">👉 눌러서 판정 보기</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="speech">
+        <span class="tag">벨로키</span>
+        <span>
+          요약하자면 <strong>“변하지 않는 규칙·문서는 맨 앞에 고정, 바뀌는 질문은 맨 뒤에 추가, 한 번 읽혔으면 식기 전에(5분 내) 연속 타격!”</strong> 이것만 지켜도 체감 속도와 쿼터 효율이 확 달라집니다!
+        </span>
+      </div>
+    </section>
+
+    <!-- STEP 5: PRACTICAL TIPS -->
+    <section class="card">
+      <h2><span class="step-num">5</span>API·로컬 LLM까지 챙기는 보너스 꿀팁 3가지</h2>
+      <div class="tips-grid">
+        <div class="tip-card">
+          <h3>💰 1. API 요금 확 줄이기</h3>
+          <p>
+            OpenAI·Anthropic·Gemini의 <strong>프롬프트 캐싱(Prompt Caching)</strong>이 바로 이 KV 캐시를 서버에 잠깐 저장해 주는 기능입니다. <strong>시스템 프롬프트와 긴 참고 문서를 앞쪽에 고정</strong>해 두면 캐시가 재사용되어 입력 토큰 비용이 크게 줄어들어요!
+          </p>
+        </div>
+        <div class="tip-card">
+          <h3>🖥️ 2. 로컬 LLM 렉 줄이기</h3>
+          <p>
+            Ollama나 llama.cpp에서 <code>num_ctx</code>를 무조건 128K로 켜두면 KV 캐시가 VRAM을 다 먹어 CPU로 밀려나며 거북이가 됩니다. <strong>필요한 만큼만 컨텍스트를 잡고</strong>, <strong>KV 캐시 양자화(q8_0)</strong>를 켜면 속도와 메모리를 둘 다 챙길 수 있어요.
+          </p>
+        </div>
+        <div class="tip-card">
+          <h3>🧩 3. MCP·도구 다이어트</h3>
+          <p>
+            에이전트에 안 쓰는 MCP 서버를 20개씩 켜두면 매 대화 앞부분에 거대한 도구 설명서가 붙어 KV 캐시도 커지고 관리가 무거워집니다. <strong>자주 쓰는 도구만 켜두고 작업 중엔 건드리지 않는 것</strong>이 캐시 유지의 비결!
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      🦖 TECHTAEK · 벨로키의 쉬운 기술 해부 · 2026-11-20 · “계산은 한 번만, 재사용은 끝까지!” · AI 생성 A 벨로키 삽화 포함 · CC BY-NC-ND 4.0
+    </footer>
+  </div>
+
+  <script>
+    // --- Simulator 1: KV Cache OFF vs ON ---
+    const tokens = ["오늘", "저녁", "치킨", "먹을까", "피자", "먹을까", "고민하다", "둘", "다", "먹자!"];
+    let mode = "off";
+    let step = 1; // how many tokens generated so far (1..tokens.length)
+
+    function calcTotal(m, n) {
+      if (m === "off") return (n * (n + 1)) / 2;
+      return n;
+    }
+
+    function renderSim() {
+      const row = document.getElementById("token-row");
+      row.innerHTML = "";
+      for (let i = 0; i < step; i++) {
+        const div = document.createElement("div");
+        const isLast = i === step - 1;
+        if (mode === "off") {
+          div.className = "tok recompute";
+          div.innerHTML = `<span>${tokens[i]}</span><span class="sub">${isLast ? "신규 계산" : "또 재계산 💦"}</span>`;
+        } else {
+          if (isLast) {
+            div.className = "tok fresh";
+            div.innerHTML = `<span>${tokens[i]}</span><span class="sub">신규 1개만!</span>`;
+          } else {
+            div.className = "tok cached";
+            div.innerHTML = `<span>${tokens[i]}</span><span class="sub">KV 포스트잇 📌</span>`;
+          }
+        }
+        row.appendChild(div);
+      }
+
+      const stepWork = mode === "off" ? step : 1;
+      const totalWork = calcTotal(mode, step);
+
+      document.getElementById("stat-len").textContent = `${step}개`;
+      const statStep = document.getElementById("stat-step");
+      const statTotal = document.getElementById("stat-total");
+      statStep.textContent = `${stepWork}개`;
+      statTotal.textContent = `${totalWork}회`;
+
+      statStep.className = `stat-val ${mode === "off" ? "red" : "green"}`;
+      statTotal.className = `stat-val ${mode === "off" ? "red" : "green"}`;
+
+      document.getElementById("btn-next").disabled = step >= tokens.length;
+
+      const veloki = document.getElementById("sim-veloki").querySelector("span:last-child");
+      if (mode === "off") {
+        if (step === 1) {
+          veloki.innerHTML = `지금은 <strong>KV 캐시 OFF</strong>예요. 단어가 늘어날수록 빨간색(재계산)이 어떻게 불어나는지 눌러보세요!`;
+        } else if (step < tokens.length) {
+          veloki.innerHTML = `헉! 단어 ${step}개 썼을 뿐인데 방금 턴에 <strong>${step}개 전부 다시 계산</strong>해서 벌써 누적 <strong>${totalWork}회</strong>나 일했어요!`;
+        } else {
+          veloki.innerHTML = `10단어 문장 하나 쓰는 데 총 <strong>55회</strong> 계산! 이게 1,000단어면 50만 번 넘게 재계산하는 꼴이에요. 🦖💦 이제 위에서 <strong>KV 캐시 ON</strong>을 눌러 비교해 보세요!`;
+        }
+      } else {
+        if (step === 1) {
+          veloki.innerHTML = `<strong>KV 캐시 ON!</strong> 앞 단어들을 노란색 포스트잇(K·V)으로 붙여두고 새 단어 1개만 계산해 볼게요.`;
+        } else if (step < tokens.length) {
+          veloki.innerHTML = `편안~ 😌 앞의 ${step - 1}개는 포스트잇에서 꺼내 쓰고 <strong>딱 1개만 새로 계산</strong>했어요! (누적 ${totalWork}회 vs OFF면 ${(step*(step+1))/2}회)`;
+        } else {
+          veloki.innerHTML = `10단어 완성에 <strong>딱 10회 계산</strong>으로 끝! OFF(55회)보다 <strong>5.5배</strong> 덜 일했고, 문장이 길어질수록 차이는 수백 배로 벌어집니다! 🦖⚡`;
+        }
+      }
+    }
+
+    function setMode(m) {
+      mode = m;
+      document.getElementById("mode-off").className = `sim-btn ${m === "off" ? "active-off" : ""}`;
+      document.getElementById("mode-on").className = `sim-btn ${m === "on" ? "active-on" : ""}`;
+      renderSim();
+    }
+
+    function nextToken() {
+      if (step < tokens.length) {
+        step++;
+        renderSim();
+      }
+    }
+
+    function resetSim() {
+      step = 1;
+      renderSim();
+    }
+
+    // --- Simulator 2: VRAM Slider ---
+    let arch = "mha";
+    const BASE_MODEL_GB = 6.0;
+    const GPU_MAX_GB = 24.0;
+    // Illustrative KV cache GB per 1K tokens for an 8B-class model (FP16 MHA ~0.5GB/1K, GQA 4x smaller ~0.125GB/1K, GQA+Q8 ~0.065GB/1K)
+    const RATE_PER_1K = {
+      mha: 0.5,
+      gqa: 0.125,
+      q8: 0.065
+    };
+
+    function setArch(a) {
+      arch = a;
+      document.getElementById("arch-mha").className = `sim-btn ${a === "mha" ? "active-off" : ""}`;
+      document.getElementById("arch-gqa").className = `sim-btn ${a === "gqa" ? "active-on" : ""}`;
+      document.getElementById("arch-q8").className = `sim-btn ${a === "q8" ? "active-on" : ""}`;
+      updateVram();
+    }
+
+    function updateVram() {
+      const ctxK = parseInt(document.getElementById("ctx-slider").value, 10);
+      const kvGb = ctxK * RATE_PER_1K[arch];
+      const totalGb = BASE_MODEL_GB + kvGb;
+      const pct = Math.round((totalGb / GPU_MAX_GB) * 100);
+      const barPct = Math.min(pct, 100);
+
+      document.getElementById("ctx-label").textContent = `${ctxK}K 토큰`;
+      document.getElementById("vram-label").textContent = `${totalGb.toFixed(1)} GB / ${GPU_MAX_GB} GB (KV 캐시 ${kvGb.toFixed(1)} GB)`;
+
+      const bar = document.getElementById("vram-bar");
+      bar.style.width = `${barPct}%`;
+      bar.textContent = pct > 100 ? `OOM (${pct}%)` : `${pct}%`;
+
+      const msg = document.getElementById("vram-veloki").querySelector("span:last-child");
+      if (pct <= 70) {
+        bar.style.background = "var(--green)";
+        msg.innerHTML = `여유 만만! 🦖☕ 모델(6GB) + KV 캐시(<strong>${kvGb.toFixed(1)}GB</strong>)가 24GB GPU 안에 쏙 들어갑니다.`;
+      } else if (pct <= 100) {
+        bar.style.background = "var(--amber)";
+        msg.innerHTML = `슬슬 빡빡해요… 🦖💧 KV 캐시만 <strong>${kvGb.toFixed(1)}GB</strong>! 조금만 더 길어지면 메모리가 넘칠 수 있어요.`;
+      } else {
+        bar.style.background = "var(--accent)";
+        msg.innerHTML = `<strong>💥 VRAM 폭발(OOM)!</strong> KV 캐시(<strong>${kvGb.toFixed(1)}GB</strong>)가 모델(6GB)보다 커졌어요! 위에서 <strong>GQA</strong>나 <strong>8-bit 양자화</strong> 버튼을 눌러 다이어트시켜 보세요!`;
+      }
+    }
+
+    // --- Tool Tabs (Claude / Codex / Antigravity) ---
+    const toolData = {
+      claude: {
+        title: "🟣 Claude / Claude Code에서 KV 캐시 꿀빨기",
+        items: [
+          "<strong>자동 Prompt Caching:</strong> 시스템 프롬프트·<code>CLAUDE.md</code>·도구 정의·대화 앞부분을 자동으로 캐싱합니다(기본 TTL 약 5분, 연장 옵션 있음).",
+          "<strong>5분 룰(연속 타격):</strong> 큰 코드베이스를 읽힌 직후엔 캐시가 식기 전에 후속 수정·테스트 요청을 이어서 처리하면 응답이 훨씬 빠르고 토큰 소모가 확 줄어듭니다.",
+          "<strong>절대 금지 콤보 ❌:</strong> 작업 도중에 <code>CLAUDE.md</code>를 고치거나, MCP 도구를 껐다 켜거나, <code>/model</code>로 모델을 갈아타면 앞부분 KV 캐시가 통째로 깨집니다.",
+          "<strong>세션 리셋 타이밍:</strong> 같은 기능 작업은 한 세션에서 밀어붙이고, 완전히 다른 주제로 갈 때만 <code>/clear</code> 또는 <code>/compact</code>를 쓰세요."
+        ]
+      },
+      codex: {
+        title: "🟢 Codex (OpenAI CLI / 에이전트)에서 KV 캐시 꿀빨기",
+        items: [
+          "<strong>자동 Prefix Caching:</strong> OpenAI는 프롬프트 앞부분이 1,024토큰 이상 정확히 일치하면 별도 설정 없이 자동으로 KV 캐시를 재사용합니다(보통 5~10분, 최대 1시간 유지).",
+          "<strong>정적 규칙은 맨 앞, 바뀔 내용은 맨 뒤:</strong> <code>AGENTS.md</code>와 공통 코딩 컨벤션을 고정해 두고, 매번 바뀌는 파일·에러 로그만 대화 뒤쪽에 추가하세요.",
+          "<strong>절대 금지 콤보 ❌:</strong> 프롬프트 맨 앞에 매 턴 바뀌는 시간·랜덤 값·상태 요약을 끼워 넣으면 1글자 차이로 뒤쪽 캐시가 전부 빗나갑니다(Cache Miss).",
+          "<strong>비슷한 작업 몰아치기:</strong> 여러 파일을 같은 규칙으로 리팩터링할 때 공통 지침이 깔린 세션을 유지하면 캐시 히트율이 크게 올라갑니다."
+        ]
+      },
+      agy: {
+        title: "🔵 Antigravity (Gemini 기반 에이전트)에서 KV 캐시 꿀빨기",
+        items: [
+          "<strong>Implicit + Context Caching:</strong> Gemini는 워크스페이스 규칙·이미 읽어둔 파일·이전 대화 흐름처럼 반복되는 앞부분 컨텍스트를 자동으로 캐싱해 속도와 비용을 아낍니다.",
+          "<strong>도구·규칙 안정화:</strong> 필요한 MCP/스킬만 깔끔하게 켜두고 작업 중간에 도구 구성을 흔들지 않아야 앞부분 Prefix가 유지됩니다.",
+          "<strong>절대 금지 콤보 ❌:</strong> 작업 한가운데서 모델을 자주 바꾸거나, 관련 없는 잡무를 한 대화에 끝없이 섞으면 캐시 효율이 떨어지고 컨텍스트만 무거워집니다.",
+          "<strong>세션 정리 팁:</strong> 대화가 길어지면 <code>/compact</code>로 핵심만 압축하고, 독립된 새 작업은 새 대화로 깔끔하게 시작하세요."
+        ]
+      }
+    };
+
+    function showTool(key) {
+      ["claude", "codex", "agy"].forEach(k => {
+        document.getElementById(`tool-${k}`).className = `sim-btn ${k === key ? "active-on" : ""}`;
+      });
+      const d = toolData[key];
+      document.getElementById("tool-panel").innerHTML = `
+        <h3>${d.title}</h3>
+        <ul class="tool-list">${d.items.map(i => `<li>${i}</li>`).join("")}</ul>
+      `;
+    }
+
+    function checkOx(btn, isHit, text) {
+      btn.classList.remove("hit", "miss");
+      btn.classList.add(isHit ? "hit" : "miss");
+      const res = btn.querySelector(".ox-result");
+      res.textContent = text;
+      res.style.color = isHit ? "#0D6E45" : "#B42318";
+    }
+
+    renderSim();
+    updateVram();
+    showTool("claude");
+  </script>
+</body>
+</html>
